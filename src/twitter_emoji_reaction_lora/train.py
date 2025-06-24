@@ -56,7 +56,7 @@ def parse_args() -> argparse.Namespace:
         "--peft_rank",
         type=int,
         default=32,
-        help="LoRA adapter rank (r) – controls adapter capacity.",
+        help="LoRA adapter rank (r) - controls adapter capacity.",
     )
     p.add_argument(
         "--learning_rate",
