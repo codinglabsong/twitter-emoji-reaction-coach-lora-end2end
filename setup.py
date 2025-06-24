@@ -13,5 +13,6 @@ setup(
         "python-dotenv",
         "numpy",
         "wandb",
+        "scikit-learn",
     ],
 )

@@ -22,7 +22,7 @@ def build_base_model(
     return model
 
 def build_peft_model(
-    model: AutoModelForSequenceClassification,
+    base_model: AutoModelForSequenceClassification,
     r: int = 32,
     lora_alpha: int = 32,
     lora_dropout: float = 0.05,
@@ -53,7 +53,14 @@ def build_peft_model(
         modules_to_save=list(modules_to_save),
     )
 
-    lora_model = get_peft_model(model, config)
+    lora_model = get_peft_model(base_model, config)
     return lora_model
 
 
+def build_inference_peft_model(
+    base_model: AutoModelForSequenceClassification,
+    model_id: str = "roberta-base-with-tweet-eval-emoji",
+):
+    inference_model = PeftModel.from_pretrained(base_model, model_id).eval()
+    
+    return inference_model
