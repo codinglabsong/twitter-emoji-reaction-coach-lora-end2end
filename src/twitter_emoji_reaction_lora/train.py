@@ -18,23 +18,66 @@ def parse_args():
     p = argparse.ArgumentParser()
 
     # client hyperparams
-    p.add_argument("--seed", type=int, default=42)
-    p.add_argument("--peft_rank", type=float, default=32)
-    p.add_argument("--learning_rate", type=float, default=5e-4)
-    p.add_argument("--num_train_epochs", type=int, default=4)
-    p.add_argument("--train_batch_size", type=int, default=128)
-    p.add_argument("--eval_batch_size", type=int, default=256)
-    p.add_argument("--warmup_ratio", type=float, default=0.05)
+    p.add_argument(
+        "--seed", type=int, default=42, help="Random seed for reproducibility."
+    )
+    p.add_argument(
+        "--peft_rank",
+        type=int,
+        default=32,
+        help="LoRA adapter rank (r) – controls adapter capacity.",
+    )
+    p.add_argument(
+        "--learning_rate",
+        type=float,
+        default=5e-4,
+        help="Initial learning rate for optimizer.",
+    )
+    p.add_argument(
+        "--num_train_epochs", type=int, default=4, help="Number of training epochs."
+    )
+    p.add_argument(
+        "--train_batch_size",
+        type=int,
+        default=128,
+        help="Batch size per device during training.",
+    )
+    p.add_argument(
+        "--eval_batch_size",
+        type=int,
+        default=256,
+        help="Batch size per device during evaluation.",
+    )
+    p.add_argument(
+        "--warmup_ratio",
+        type=float,
+        default=0.05,
+        help="Fraction of total steps used for linear warm-up.",
+    )
 
     # other client params
-    p.add_argument("--model_id", type=str, default="roberta-base-with-tweet-eval-emoji")
-    p.add_argument("--push_to_hub", type=bool, default=False)
+    p.add_argument(
+        "--model_id",
+        type=str,
+        default="roberta-base-with-tweet-eval-emoji",
+        help="Output directory / model identifier prefix.",
+    )
+    p.add_argument(
+        "--push_to_hub",
+        action="store_true",
+        help="If set, push the trained model & tokenizer to the HF Hub.",
+    )
     p.add_argument(
         "--hf_hub_repo_id",
         type=str,
-        default="codinglabsong/roberta-base-tweet-emoji-lora",
+        default=None,
+        help="Your HF Hub repo (e.g. username/model-name). Required if --push_to_hub.",
     )
-    p.add_argument("--do_test", type=bool, default=True)
+    p.add_argument(
+        "--do_test",
+        action="store_true",
+        help="If set, run evaluation on the test split after training.",
+    )
 
     # wandb
     p.add_argument(
@@ -43,7 +86,13 @@ def parse_args():
 
     # output directories (special SageMaker paths that rely on Sagemaker's env vars)
     p.add_argument("--model-dir", default=os.getenv("SM_MODEL_DIR", "output/"))
-    return p.parse_args()
+
+    # validations
+    args = p.parse_args()
+    if args.push_to_hub and not args.hf_hub_repo_id:
+        p.error("--hf_hub_repo_id is required when --push_to_hub is set")
+
+    return args
 
 
 def get_weighted_trainer(
@@ -159,7 +208,7 @@ def main():
         fp16=True,
         push_to_hub=cfg.push_to_hub,
         report_to="wandb",
-        run_name=f"copmuter-emoji-{uuid4().hex[:8]}",
+        run_name=f"emoji-{uuid4().hex[:8]}",
         label_names=["labels"],
     )
     data_collator = DataCollatorWithPadding(tok, pad_to_multiple_of=8)
