@@ -1,7 +1,9 @@
+import argparse
+import random
 import numpy as np
-import wandb
 import torch
 import os
+import wandb
 from transformers import Trainer
 from transformers import TrainingArguments, Trainer, DataCollatorWithPadding
 from twitter_emoji_reaction_lora.data import load_emoji_dataset, tokenize_and_format
@@ -164,8 +166,6 @@ def main():
     
     # end wandb logging
     wandb.finish()
-    
-    # sample output from model and push to HF hub
     
     
 if __name__ == "__main__":
