@@ -4,10 +4,11 @@ Provides `load_emoji_dataset` and `tokenize_and_format`.
 """
 
 from datasets import DatasetDict, load_dataset
+from pathlib import Path
 from transformers import AutoTokenizer
 
 
-def load_emoji_dataset() -> DatasetDict:
+def load_emoji_dataset(cache_dir: str = ".cache") -> DatasetDict:
     """Load the TweetEval Emoji classification dataset.
 
     Downloads and prepares the “emoji” subset of the TweetEval benchmark
@@ -16,7 +17,14 @@ def load_emoji_dataset() -> DatasetDict:
     Returns:
         DatasetDict: A dict-like object with keys "train", "validation", and "test".
     """
-    return load_dataset("tweet_eval", "emoji")
+    cache_path = Path(cache_dir)
+    cache_path.mkdir(parents=True, exist_ok=True)
+
+    return load_dataset(
+        "tweet_eval",
+        "emoji",
+        cache_dir=str(cache_path),
+    )
 
 
 def tokenize_and_format(

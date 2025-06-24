@@ -1,4 +1,4 @@
-# Byte‐compiled / optimized / DLL files / .cache / .egg-info
+# Byte‐compiled / optimized / DLL files / .cache / .egg-info / setup
 __pycache__/
 *.py[cod]
 *$py.class
@@ -6,6 +6,7 @@ __pycache__/
 .pytest_cache
 .ruff_cache
 *.egg-info/
+build/
 
 # secrets
 .env
