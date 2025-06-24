@@ -1,9 +1,4 @@
-from evaluate import load
-import numpy as np
-
-# load once at import time
-accuracy_metric = load("accuracy")
-f1_metric       = load("f1")
+from sklearn.metrics import accuracy_score, f1_score
 
 def compute_metrics(eval_pred):
     """
@@ -18,17 +13,10 @@ def compute_metrics(eval_pred):
     preds = np.argmax(logits, axis=-1)
 
     # 1) Accuracy
-    acc_res = accuracy_metric.compute(
-        predictions=preds, 
-        references=labels
-    )
+    acc = accuracy_score(labels, preds)
 
     # 2) Macro-F1
-    f1_res  = f1_metric.compute(
-        predictions=preds, 
-        references=labels, 
-        average="macro"
-    )
+    f1 = f1_score(labels, preds, average="macro")
 
     # 3) Top-3 accuracy
     top3 = np.any(
@@ -39,7 +27,7 @@ def compute_metrics(eval_pred):
 
     # combine results
     return {
-        **acc_res,
-        **f1_res,
+        "accuracy": acc,
+        "f1": f1,
         "top3_accuracy": top3_acc,
     }
