@@ -15,24 +15,36 @@ from uuid import uuid4
 def parse_args():
     p = argparse.ArgumentParser()
 
-    # hyperparameters sent by the client (same flag names as estimator hyperparameters)
+    # client hyperparams
     p.add_argument("--seed", type=int, default=42)
-    p.add_argument("--lr-head", type=float, default=4e-3)
+    p.add_argument("--peft_rank", type=float, default=32)
+    p.add_argument("--learning_rate", type=float, default=5e-4)
+    p.add_argument("--num_train_epochs", type=int, default=4)
+    p.add_argument("--train_batch_size", type=int, default=128)
+    p.add_argument("--eval_batch_size", type=int, default=256)
+    p.add_argument("--warmup_ratio", type=float, default=0.05)
 
-    # other variables
+    # other client params
+    p.add_argument("--model_id", type=str, default="roberta-base-with-tweet-eval-emoji")
+    p.add_argument("--push_to_hub", type=bool, default=False)
+    p.add_argument("--hf_hub_repo_id", type=str, default="codinglabsong/roberta-base-tweet-emoji-lora")
+    p.add_argument("--do_test", type=bool, default=True)
+    
+    # wandb
     p.add_argument("--wandb-project", type=str, default="Emoji-reaction-coach-with-lora")
 
-    # data and output directories (special SageMaker paths that rely on Sagemaker's env vars)
+    # output directories (special SageMaker paths that rely on Sagemaker's env vars)
     p.add_argument("--model-dir", default=os.getenv("SM_MODEL_DIR", "output/"))
-    p.add_argument(
-        "--train-dir", default=os.getenv("SM_CHANNEL_TRAIN", "data/sample/train/")
-    )
-    p.add_argument(
-        "--test-dir", default=os.getenv("SM_CHANNEL_TEST", "data/sample/test/")
-    )
     return p.parse_args()
 
-def get_weighted_trainer(model, args, ds_tok, data_collator, compute_metrics):
+def get_weighted_trainer(
+    model, 
+    args, 
+    ds_tok, 
+    data_collator, 
+    compute_metrics,
+    tokenizer
+):
     """
     Create a Hugging Face Trainer that applies class‐balanced weights to the loss.
 
@@ -76,6 +88,7 @@ def get_weighted_trainer(model, args, ds_tok, data_collator, compute_metrics):
         eval_dataset=ds_tok["validation"],
         data_collator=data_collator,
         compute_metrics=compute_metrics,
+        tokenizer=tokenizer,
     )
 
     return trainer
@@ -105,7 +118,6 @@ def main():
     
     # environ
     os.environ["WANDB_NOTES"] = "Fine tune model with low rank adaptation for an emoji reaction coach"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0" # Use only one GPU
     
     # download and tokenize dataset
     ds = load_emoji_dataset()
@@ -114,30 +126,27 @@ def main():
     # initialize base model and LoRA
     model = build_base_model()
     print(f"Base model trainable params: {print_trainable_parameters(model)}")
-    lora_model = build_peft_model(model)
-    print(f"LoRA model trainable params: {print_trainable_parameters(lora_model)}")
+    lora_model = build_peft_model(model, cfg.peft_rank)
+    print(f"LoRA model (peft_rank={cfg.peft_rank}) trainable params: {print_trainable_parameters(lora_model)}")
     
     # setup trainer and train
-    
-    model_id = "roberta-base-with-tweet-eval-emoji"
-
     training_args = TrainingArguments(
-        output_dir=model_id,
+        output_dir=cfg.model_id,
         eval_strategy="epoch",
         save_strategy="epoch",
-        learning_rate=5e-4,
+        learning_rate=cfg.learning_rate,
         weight_decay=0.01,
         lr_scheduler_type="linear",
-        warmup_ratio=0.05,
-        num_train_epochs=4,
-        per_device_train_batch_size=128,
-        per_device_eval_batch_size=256,
+        warmup_ratio=cfg.warmup_ratio,
+        num_train_epochs=cfg.num_train_epochs,
+        per_device_train_batch_size=cfg.train_batch_size,
+        per_device_eval_batch_size=cfg.eval_batch_size,
         max_grad_norm=0.5,
         label_smoothing_factor=0.1,
-        save_total_limit=3,
+        save_total_limit=2,
         logging_steps=30,
         fp16=True,
-        push_to_hub=False,
+        push_to_hub=cfg.push_to_hub,
         report_to="wandb",
         run_name=f"copmuter-emoji-{uuid4().hex[:8]}",
         label_names=["labels"],
@@ -150,18 +159,30 @@ def main():
         ds_tok=ds_tok,
         data_collator=data_collator,
         compute_metrics=compute_metrics,
+        tokenizer=tok,
     )
 
     trainer.train()
     
-    # evaluate
-    metrics = trainer.evaluate(ds_tok["test"])
-    print(f"Test metrics:\n{metrics}")
+    # evaluate test 
+    if cfg.do_test:
+        print("running final test-set evaluation...")
+        metrics = trainer.evaluate(ds_tok["test"])
+        print(f"Test metrics:\n{metrics}")
 
-    # save weights and tokenizer
-    print("saving LoRA model and tokenizer...")
-    lora_model.save_pretrained(model_id)
-    tok.save_pretrained(model_id)
+    # save model & tokenizer to output_dir
+    print("saving LoRA model and tokenizer...")    
+    trainer.save_model() 
+    
+    # push to hub
+    if cfg.push_to_hub:
+        print("pushing to Huggingface hub...")
+        trainer.push_to_hub(
+            repo_id=cfg.hf_hub_repo_id,
+            finetuned_from="FacebookAI/roberta-base",
+            tasks="text-classification",
+            dataset="tweet_eval/emoji",
+        )
     
     # end wandb logging
     wandb.finish()
