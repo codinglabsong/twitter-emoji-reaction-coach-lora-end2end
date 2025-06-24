@@ -14,5 +14,6 @@ setup(
         "numpy",
         "wandb",
         "scikit-learn",
+        "ipykernel",
     ],
 )

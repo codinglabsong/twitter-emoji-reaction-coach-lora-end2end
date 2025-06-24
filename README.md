@@ -24,7 +24,8 @@ pip install -r requirements.txt
 pip install -r requirements-dev.txt
 pre-commit install
 ```
-3. (Optional) Install the package itself (runs `setup.py`):
+
+3. Install the package itself (runs `setup.py`):
 ```bash
 # Standard install:
 pip install .
