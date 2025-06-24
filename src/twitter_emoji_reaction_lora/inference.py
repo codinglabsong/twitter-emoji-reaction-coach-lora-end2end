@@ -7,7 +7,9 @@ or predict emojis for given input texts.
 
 import argparse
 import logging
+import os
 import torch
+from huggingface_hub import login
 from transformers import (
     AutoTokenizer,
     TrainingArguments,
@@ -24,6 +26,19 @@ from twitter_emoji_reaction_lora.model import (
 from twitter_emoji_reaction_lora.evaluate import compute_metrics
 
 logger = logging.getLogger(__name__)
+
+# setting environ vars depending on local or remote training
+try:
+    # if python-dotenv is installed, load it
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    # no python-dotenv available (e.g. in SageMaker container), skip
+    pass
+
+# log into huggingface
+login(token=os.getenv("HUGGINGFACE_TOKEN"))
 
 
 def parse_args() -> argparse.Namespace:

@@ -12,6 +12,7 @@ import torch
 import os
 import wandb
 from datasets import DatasetDict
+from huggingface_hub import login
 from typing import Callable, Dict
 from transformers import (
     PreTrainedTokenizerBase,
@@ -28,6 +29,19 @@ from sklearn.utils.class_weight import compute_class_weight
 from uuid import uuid4
 
 logger = logging.getLogger(__name__)
+
+# setting environ vars depending on local or remote training
+try:
+    # if python-dotenv is installed, load it
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    # no python-dotenv available (e.g. in SageMaker container), skip
+    pass
+
+# log into huggingface
+login(token=os.getenv("HUGGINGFACE_TOKEN"))
 
 
 def parse_args() -> argparse.Namespace:
@@ -183,11 +197,6 @@ def main() -> None:
     # reproducibility
     set_seed(cfg.seed)
     logger.info(f"Set seed: {cfg.seed}")
-
-    # environ
-    os.environ["WANDB_NOTES"] = (
-        "Fine tune model with low rank adaptation for an emoji reaction coach"
-    )
 
     # ---------- Data Preprocessing ----------
     # download and tokenize dataset
