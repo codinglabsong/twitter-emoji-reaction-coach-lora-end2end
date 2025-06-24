@@ -1,3 +1,7 @@
+"""
+Module for computing evaluation metrics for the TweetEval-Emoji classification task.
+"""
+
 import numpy as np
 from sklearn.metrics import accuracy_score, f1_score
 

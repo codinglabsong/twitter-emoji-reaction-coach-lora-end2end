@@ -1,4 +1,11 @@
+"""
+Module with helper functions for inspecting and logging properties of HuggingFace Transformer models.
+"""
+
 from transformers import PreTrainedModel
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def print_trainable_parameters(model: PreTrainedModel) -> None:
@@ -14,6 +21,6 @@ def print_trainable_parameters(model: PreTrainedModel) -> None:
         all_param += param.numel()
         if param.requires_grad:
             trainable_params += param.numel()
-    print(
+    logger.info(
         f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param:.2f}"
     )

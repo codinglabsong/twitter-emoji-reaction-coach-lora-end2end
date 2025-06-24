@@ -1,9 +1,21 @@
+"""
+Data loading and preprocessing for the TweetEval-Emoji task.
+Provides `load_emoji_dataset` and `tokenize_and_format`.
+"""
+
 from datasets import DatasetDict, load_dataset
 from transformers import AutoTokenizer
 
 
-def load_emoji_dataset():
-    """Load TweetEval-Emoji and return train/validation/test splits."""
+def load_emoji_dataset() -> DatasetDict:
+    """Load the TweetEval Emoji classification dataset.
+
+    Downloads and prepares the “emoji” subset of the TweetEval benchmark
+    from Hugging Face Datasets, returning a DatasetDict with splits:
+
+    Returns:
+        DatasetDict: A dict-like object with keys "train", "validation", and "test".
+    """
     return load_dataset("tweet_eval", "emoji")
 
 
@@ -13,8 +25,22 @@ def tokenize_and_format(
     max_length: int = 128,
 ) -> (DatasetDict, AutoTokenizer):
     """
-    Tokenizes, pads/truncates, renames label column, and sets PyTorch format.
-    Returns the tokenized DatasetDict and the tokenizer.
+    Tokenize and prepare a text dataset for PyTorch training.
+
+    Loads a pretrained tokenizer from `checkpoint`, applies it to the "text"
+    field of each example (with truncation and padding to `max_length`), renames
+    the "label" column to "labels", and configures the dataset to return
+    PyTorch tensors for `input_ids`, `attention_mask`, and `labels`.
+
+    Args:
+        ds (DatasetDict): Raw dataset containing "text" and "label" columns.
+        checkpoint (str): HuggingFace tokenizer checkpoint to load.
+        max_length (int): Maximum token length for padding/truncation.
+
+    Returns:
+        Tuple[DatasetDict, AutoTokenizer]:
+            - ds_tok: Tokenized and formatted dataset ready for Trainer.
+            - tok:   The loaded AutoTokenizer instance.
     """
     tok = AutoTokenizer.from_pretrained(checkpoint)
 

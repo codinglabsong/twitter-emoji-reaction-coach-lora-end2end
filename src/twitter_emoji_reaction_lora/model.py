@@ -1,3 +1,8 @@
+"""
+Module for constructing and loading RoBERTa-based sequence classification models
+with optional LoRA adapters for the TweetEval-Emoji task.
+"""
+
 from transformers import AutoModelForSequenceClassification
 from peft import LoraConfig, get_peft_model, PeftModel
 
@@ -62,7 +67,18 @@ def build_peft_model(
 def build_inference_peft_model(
     base_model: AutoModelForSequenceClassification,
     model_id: str = "roberta-base-with-tweet-eval-emoji",
-):
+) -> PeftModel:
+    """
+    Load a trained LoRA adapter from the Hugging Face Hub and attach it to the base model
+    for inference.
+
+    Args:
+        base_model (AutoModelForSequenceClassification): The pretrained base model.
+        model_id (str): Hub repository identifier containing the LoRA adapter.
+
+    Returns:
+        PeftModel: The base model with the LoRA adapter loaded and set to eval mode.
+    """
     inference_model = PeftModel.from_pretrained(base_model, model_id).eval()
 
     return inference_model

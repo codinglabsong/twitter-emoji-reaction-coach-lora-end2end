@@ -1,3 +1,10 @@
+"""
+Inference script for the TweetEval-Emoji LoRA model.
+
+This module provides a CLI to either evaluate the fine-tuned model on the test split
+or predict emojis for given input texts.
+"""
+
 import argparse
 import logging
 import torch
@@ -16,8 +23,21 @@ from twitter_emoji_reaction_lora.model import (
 )
 from twitter_emoji_reaction_lora.evaluate import compute_metrics
 
+logger = logging.getLogger(__name__)
 
-def parse_args():
+
+def parse_args() -> argparse.Namespace:
+    """
+    Parse command-line arguments.
+
+    Returns:
+        argparse.Namespace: Parsed arguments including:
+            - model_id: HF Hub repo or local path of the LoRA adapter.
+            - mode: 'test' to evaluate on test split; 'predict' to classify texts.
+            - batch_size: Batch size for evaluation.
+            - texts: List of input strings for prediction mode.
+            - top_k: Number of top emojis to return in prediction mode.
+    """
     parser = argparse.ArgumentParser(
         description="Run final evaluation or prediction with the TweetEval-Emoji LoRA model"
     )
@@ -54,11 +74,19 @@ def parse_args():
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
+    """
+    Main entry point for running evaluation or prediction.
+
+    - Loads tokenizer and base model.
+    - Attaches LoRA adapter.
+    - If mode=='test', runs evaluation on the test split and logs metrics.
+    - If mode=='predict', runs inference and prints top_k emojis for each input text.
+    """
     logging.basicConfig(level=logging.INFO)
     cfg = parse_args()
     device = 0 if torch.cuda.is_available() else -1
-    logging.info(f"Loading tokenizer and base model for '{cfg.model_id}'...")
+    logger.info(f"Loading tokenizer and base model for '{cfg.model_id}'...")
 
     # Load tokenizer from adapter repo (includes tokenizer files)
     tok = AutoTokenizer.from_pretrained(cfg.model_id)
@@ -68,7 +96,7 @@ def main():
     model = build_inference_peft_model(base_model, cfg.model_id)
 
     if cfg.mode == "test":
-        logging.info("Running evaluation on the test set...")
+        logger.info("Running evaluation on the test set...")
         # Load and tokenize dataset
         ds = load_emoji_dataset()
         ds_tok, _ = tokenize_and_format(ds)
@@ -90,12 +118,12 @@ def main():
         )
 
         metrics = trainer.evaluate()
-        logging.info(f"Test metrics: {metrics}")
+        logger.info(f"Test metrics: {metrics}")
 
     else:
         if not cfg.texts:
             raise ValueError("`--texts` must be provided in `predict` mode.")
-        logging.info("Running prediction on input texts...")
+        logger.info("Running prediction on input texts...")
         pipe = pipeline(
             task="text-classification",
             model=model,
@@ -130,13 +158,23 @@ def main():
         }
 
         def _emojify(text, k=cfg.top_k):
+            """
+            Predict top k emojis for the given text.
+
+            Args:
+                text (str): Input string.
+                k (int): Number of top emojis to return.
+
+            Returns:
+                str: Space-separated top k emojis.
+            """
             probs = pipe(text)[0]
             top = sorted(probs, key=lambda x: x["score"], reverse=True)[:k]
             return " ".join(id2label[int(d["label"].split("_")[-1])] for d in top)
 
         for text in cfg.texts:
-            logging.info(f"Input: {text}")
-            logging.info(f"Output: {_emojify(text)}")
+            logger.info(f"Input: {text}")
+            logger.info(f"Output: {_emojify(text)}")
 
 
 if __name__ == "__main__":

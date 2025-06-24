@@ -1,3 +1,9 @@
+"""
+Train a RoBERTa-based emoji reaction classifier on TweetEval-Emoji,
+using PEFT/LoRA adapters and class-weighted loss.  
+Exposes configurable hyperparameters and optional push to Hugging Face Hub.
+"""
+
 import argparse
 import logging
 import random
@@ -5,7 +11,15 @@ import numpy as np
 import torch
 import os
 import wandb
-from transformers import TrainingArguments, Trainer, DataCollatorWithPadding
+from datasets import DatasetDict
+from typing import Callable, Dict
+from transformers import (
+    PreTrainedTokenizerBase,
+    DataCollatorWithPadding,
+    Trainer,
+    TrainingArguments,
+    EvalPrediction,
+)
 from twitter_emoji_reaction_lora.data import load_emoji_dataset, tokenize_and_format
 from twitter_emoji_reaction_lora.model import build_base_model, build_peft_model
 from twitter_emoji_reaction_lora.utils import print_trainable_parameters
@@ -13,8 +27,11 @@ from twitter_emoji_reaction_lora.evaluate import compute_metrics
 from sklearn.utils.class_weight import compute_class_weight
 from uuid import uuid4
 
+logger = logging.getLogger(__name__)
 
-def parse_args():
+
+def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments for training and evaluation."""
     p = argparse.ArgumentParser()
 
     # client hyperparams
@@ -96,30 +113,26 @@ def parse_args():
 
 
 def get_weighted_trainer(
-    model, args, ds_tok, data_collator, compute_metrics, tokenizer
-):
+    model: torch.nn.Module,
+    args: TrainingArguments,
+    ds_tok: DatasetDict,
+    data_collator: DataCollatorWithPadding,
+    compute_metrics: Callable[["EvalPrediction"], Dict[str, float]],
+    tokenizer: PreTrainedTokenizerBase,
+) -> Trainer:
     """
-    Create a Hugging Face Trainer that applies class‐balanced weights to the loss.
-
-    This function computes per‐class weights based on the training split of a
-    tokenized `DatasetDict`, then defines and returns a custom Trainer subclass
-    (`WeightedTrainer`) that uses those weights in its cross‐entropy loss.
+    Return a Trainer with class-balanced cross-entropy loss.
 
     Args:
-        model (PreTrainedModel): A Transformers model instantiated for
-            sequence classification.
-        args (TrainingArguments): The training configuration arguments.
-        ds_tok (DatasetDict): A dataset dictionary with keys
-            "train", "validation", etc., where ds_tok["train"]["labels"]
-            contains the class labels.
-        data_collator (DataCollator): A data collator for batching examples.
-        compute_metrics (callable): A function that takes an `EvalPrediction`
-            and returns a dict of metric names to values.
+        model: a Transformers sequence-classification model.
+        args: training arguments.
+        ds_tok: a DatasetDict with 'train' and 'validation' splits.
+        data_collator: batches examples.
+        compute_metrics: fn(EvalPrediction) → {metric_name: value}.
+        tokenizer: the tokenizer for saving/pushing.
 
     Returns:
-        Trainer: An instance of a `WeightedTrainer` with:
-            - class‐balanced cross‐entropy loss, and
-            - the provided model, args, datasets, collator, and metrics.
+        A Trainer whose compute_loss applies per-class weights.
     """
     labels = np.array(ds_tok["train"]["labels"])
     weights = compute_class_weight("balanced", classes=np.unique(labels), y=labels)
@@ -148,7 +161,7 @@ def get_weighted_trainer(
 
 
 def set_seed(seed: int) -> None:
-    """Ensure reproducibility"""
+    """Seed all RNGs (Python, NumPy, Torch) for deterministic runs."""
     random.seed(seed)  # vanilla Python Random Number Generator (RNG)
     np.random.seed(seed)  # NumPy RNG
     torch.manual_seed(seed)  # CPU-side torch RNG
@@ -157,18 +170,19 @@ def set_seed(seed: int) -> None:
     torch.backends.cudnn.benchmark = False  # trade speed for reproducibility
 
 
-def main():
+def main() -> None:
+    """Entry point: parse args, prepare data, train, evaluate, and optionally push."""
     logging.basicConfig(level=logging.INFO)
     cfg = parse_args()
 
     # ---------- Initialization ----------
     # choose device
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    logging.info(f"Using: {DEVICE}")
+    logger.info(f"Using: {DEVICE}")
 
     # reproducibility
     set_seed(cfg.seed)
-    logging.info(f"Set seed: {cfg.seed}")
+    logger.info(f"Set seed: {cfg.seed}")
 
     # environ
     os.environ["WANDB_NOTES"] = (
@@ -182,9 +196,9 @@ def main():
 
     # initialize base model and LoRA
     model = build_base_model()
-    logging.info(f"Base model trainable params: {print_trainable_parameters(model)}")
+    logger.info(f"Base model trainable params: {print_trainable_parameters(model)}")
     lora_model = build_peft_model(model, cfg.peft_rank)
-    logging.info(
+    logger.info(
         f"LoRA model (peft_rank={cfg.peft_rank}) trainable params: {print_trainable_parameters(lora_model)}"
     )
 
@@ -227,17 +241,17 @@ def main():
     # ---------- Save, Test or Push ----------
     # evaluate test
     if cfg.do_test:
-        logging.info("running final test-set evaluation...")
+        logger.info("running final test-set evaluation...")
         metrics = trainer.evaluate(ds_tok["test"])
-        logging.info(f"Test metrics:\n{metrics}")
+        logger.info(f"Test metrics:\n{metrics}")
 
     # save model & tokenizer to output_dir
-    logging.info("saving LoRA model and tokenizer...")
+    logger.info("saving LoRA model and tokenizer...")
     trainer.save_model()
 
     # push to hub
     if cfg.push_to_hub:
-        logging.info("pushing to Huggingface hub...")
+        logger.info("pushing to Huggingface hub...")
         trainer.push_to_hub(
             repo_id=cfg.hf_hub_repo_id,
             finetuned_from="FacebookAI/roberta-base",
