@@ -1,5 +1,6 @@
-from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer
+from transformers import AutoModelForSequenceClassification
 from peft import LoraConfig, get_peft_model, PeftModel
+
 
 def build_base_model(
     checkpoint: str = "FacebookAI/roberta-base",
@@ -15,11 +16,12 @@ def build_base_model(
         A RobertaForSequenceClassification instance
     """
     model = AutoModelForSequenceClassification.from_pretrained(
-    checkpoint,
-    num_labels=num_labels,
-    ignore_mismatched_sizes=True,   # suppress head-init warning
-    ) 
+        checkpoint,
+        num_labels=num_labels,
+        ignore_mismatched_sizes=True,  # suppress head-init warning
+    )
     return model
+
 
 def build_peft_model(
     base_model: AutoModelForSequenceClassification,
@@ -62,5 +64,5 @@ def build_inference_peft_model(
     model_id: str = "roberta-base-with-tweet-eval-emoji",
 ):
     inference_model = PeftModel.from_pretrained(base_model, model_id).eval()
-    
+
     return inference_model

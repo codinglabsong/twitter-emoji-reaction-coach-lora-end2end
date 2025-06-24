@@ -1,6 +1,7 @@
 from datasets import DatasetDict, load_dataset
 from transformers import AutoTokenizer
 
+
 def load_emoji_dataset():
     """Load TweetEval-Emoji and return train/validation/test splits."""
     return load_dataset("tweet_eval", "emoji")
@@ -18,10 +19,9 @@ def tokenize_and_format(
     tok = AutoTokenizer.from_pretrained(checkpoint)
 
     def _tokenize(batch):
-        return tok(batch["text"], 
-                   truncation=True,
-                   padding="max_length",
-                   max_length=max_length)
+        return tok(
+            batch["text"], truncation=True, padding="max_length", max_length=max_length
+        )
 
     ds_tok = ds.map(_tokenize, batched=True)
     ds_tok = ds_tok.rename_column("label", "labels")

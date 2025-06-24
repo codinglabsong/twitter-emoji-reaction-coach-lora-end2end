@@ -8,7 +8,9 @@ def test_build_base_and_peft(monkeypatch):
         config = RobertaConfig(num_labels=num_labels)
         return AutoModelForSequenceClassification.from_config(config)
 
-    monkeypatch.setattr(AutoModelForSequenceClassification, "from_pretrained", fake_from_pretrained)
+    monkeypatch.setattr(
+        AutoModelForSequenceClassification, "from_pretrained", fake_from_pretrained
+    )
 
     base = model.build_base_model()
     assert base.config.num_labels == 20

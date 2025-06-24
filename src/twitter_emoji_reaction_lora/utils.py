@@ -1,9 +1,10 @@
 from transformers import PreTrainedModel
 
+
 def print_trainable_parameters(model: PreTrainedModel) -> None:
     """
     Prints the number of trainable parameters in the model.
-    
+
     Args:
         model: any HF Transformers model
     """

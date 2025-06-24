@@ -13,5 +13,5 @@ __pycache__/
 # wandb
 wandb/
 
-# datasets
-.cache
+# local‐mode outputs
+output/

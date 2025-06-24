@@ -3,21 +3,24 @@ import logging
 import torch
 from transformers import (
     AutoTokenizer,
-    AutoModelForSequenceClassification,
     TrainingArguments,
     Trainer,
     pipeline,
     DataCollatorWithPadding,
 )
-from peft import PeftModel
 
 from twitter_emoji_reaction_lora.data import load_emoji_dataset, tokenize_and_format
-from twitter_emoji_reaction_lora.model import build_base_model, build_inference_peft_model
+from twitter_emoji_reaction_lora.model import (
+    build_base_model,
+    build_inference_peft_model,
+)
 from twitter_emoji_reaction_lora.evaluate import compute_metrics
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Run final evaluation or prediction with the TweetEval-Emoji LoRA model")
+    parser = argparse.ArgumentParser(
+        description="Run final evaluation or prediction with the TweetEval-Emoji LoRA model"
+    )
     parser.add_argument(
         "--model_id",
         type=str,
@@ -104,17 +107,33 @@ def main():
 
         # Map label IDs to emojis
         id2label = {
-            0: "❤", 1: "😍", 2: "😂", 3: "💕", 4: "🔥",
-            5: "😊", 6: "😎", 7: "✨", 8: "💙", 9: "😘",
-            10: "📷", 11: "🇺🇸", 12: "☀", 13: "💜", 14: "😉",
-            15: "💯", 16: "😁", 17: "🎄", 18: "📸", 19: "😜"
+            0: "❤",
+            1: "😍",
+            2: "😂",
+            3: "💕",
+            4: "🔥",
+            5: "😊",
+            6: "😎",
+            7: "✨",
+            8: "💙",
+            9: "😘",
+            10: "📷",
+            11: "🇺🇸",
+            12: "☀",
+            13: "💜",
+            14: "😉",
+            15: "💯",
+            16: "😁",
+            17: "🎄",
+            18: "📸",
+            19: "😜",
         }
-        
+
         def _emojify(text, k=cfg.top_k):
             probs = pipe(text)[0]
             top = sorted(probs, key=lambda x: x["score"], reverse=True)[:k]
             return " ".join(id2label[int(d["label"].split("_")[-1])] for d in top)
-        
+
         for text in cfg.texts:
             logging.info(f"Input: {text}")
             logging.info(f"Output: {_emojify(text)}")

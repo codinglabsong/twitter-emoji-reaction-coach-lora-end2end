@@ -1,4 +1,5 @@
 import argparse
+import logging
 import random
 import numpy as np
 import torch
@@ -11,6 +12,7 @@ from twitter_emoji_reaction_lora.utils import print_trainable_parameters
 from twitter_emoji_reaction_lora.evaluate import compute_metrics
 from sklearn.utils.class_weight import compute_class_weight
 from uuid import uuid4
+
 
 def parse_args():
     p = argparse.ArgumentParser()
@@ -27,23 +29,25 @@ def parse_args():
     # other client params
     p.add_argument("--model_id", type=str, default="roberta-base-with-tweet-eval-emoji")
     p.add_argument("--push_to_hub", type=bool, default=False)
-    p.add_argument("--hf_hub_repo_id", type=str, default="codinglabsong/roberta-base-tweet-emoji-lora")
+    p.add_argument(
+        "--hf_hub_repo_id",
+        type=str,
+        default="codinglabsong/roberta-base-tweet-emoji-lora",
+    )
     p.add_argument("--do_test", type=bool, default=True)
-    
+
     # wandb
-    p.add_argument("--wandb-project", type=str, default="Emoji-reaction-coach-with-lora")
+    p.add_argument(
+        "--wandb-project", type=str, default="Emoji-reaction-coach-with-lora"
+    )
 
     # output directories (special SageMaker paths that rely on Sagemaker's env vars)
     p.add_argument("--model-dir", default=os.getenv("SM_MODEL_DIR", "output/"))
     return p.parse_args()
 
+
 def get_weighted_trainer(
-    model, 
-    args, 
-    ds_tok, 
-    data_collator, 
-    compute_metrics,
-    tokenizer
+    model, args, ds_tok, data_collator, compute_metrics, tokenizer
 ):
     """
     Create a Hugging Face Trainer that applies class‐balanced weights to the loss.
@@ -68,8 +72,8 @@ def get_weighted_trainer(
             - class‐balanced cross‐entropy loss, and
             - the provided model, args, datasets, collator, and metrics.
     """
-    labels   = np.array(ds_tok["train"]["labels"])
-    weights  = compute_class_weight("balanced", classes=np.unique(labels), y=labels)
+    labels = np.array(ds_tok["train"]["labels"])
+    weights = compute_class_weight("balanced", classes=np.unique(labels), y=labels)
     class_weights = torch.tensor(weights, dtype=torch.float)
 
     class WeightedTrainer(Trainer):
@@ -80,7 +84,7 @@ def get_weighted_trainer(
                 outputs.logits, labels, weight=class_weights.to(outputs.logits.device)
             )
             return (loss, outputs) if return_outputs else loss
-        
+
     trainer = WeightedTrainer(
         model=model,
         args=args,
@@ -107,30 +111,34 @@ def set_seed(seed: int) -> None:
 def main():
     logging.basicConfig(level=logging.INFO)
     cfg = parse_args()
-    
+
     # ---------- Initialization ----------
     # choose device
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logging.info(f"Using: {DEVICE}")
-    
+
     # reproducibility
     set_seed(cfg.seed)
     logging.info(f"Set seed: {cfg.seed}")
-    
+
     # environ
-    os.environ["WANDB_NOTES"] = "Fine tune model with low rank adaptation for an emoji reaction coach"
-    
+    os.environ["WANDB_NOTES"] = (
+        "Fine tune model with low rank adaptation for an emoji reaction coach"
+    )
+
     # ---------- Data Preprocessing ----------
     # download and tokenize dataset
     ds = load_emoji_dataset()
     ds_tok, tok = tokenize_and_format(ds)
-    
+
     # initialize base model and LoRA
     model = build_base_model()
     logging.info(f"Base model trainable params: {print_trainable_parameters(model)}")
     lora_model = build_peft_model(model, cfg.peft_rank)
-    logging.info(f"LoRA model (peft_rank={cfg.peft_rank}) trainable params: {print_trainable_parameters(lora_model)}")
-    
+    logging.info(
+        f"LoRA model (peft_rank={cfg.peft_rank}) trainable params: {print_trainable_parameters(lora_model)}"
+    )
+
     # ---------- Train ----------
     # setup trainer and train
     training_args = TrainingArguments(
@@ -155,7 +163,7 @@ def main():
         label_names=["labels"],
     )
     data_collator = DataCollatorWithPadding(tok, pad_to_multiple_of=8)
-    
+
     trainer = get_weighted_trainer(
         model=lora_model,
         args=training_args,
@@ -166,18 +174,18 @@ def main():
     )
 
     trainer.train()
-    
+
     # ---------- Save, Test or Push ----------
-    # evaluate test 
+    # evaluate test
     if cfg.do_test:
         logging.info("running final test-set evaluation...")
         metrics = trainer.evaluate(ds_tok["test"])
         logging.info(f"Test metrics:\n{metrics}")
 
     # save model & tokenizer to output_dir
-    logging.info("saving LoRA model and tokenizer...")    
-    trainer.save_model() 
-    
+    logging.info("saving LoRA model and tokenizer...")
+    trainer.save_model()
+
     # push to hub
     if cfg.push_to_hub:
         logging.info("pushing to Huggingface hub...")
@@ -187,9 +195,9 @@ def main():
             tasks="text-classification",
             dataset="tweet_eval/emoji",
         )
-    
+
     wandb.finish()
-    
-    
+
+
 if __name__ == "__main__":
     main()
