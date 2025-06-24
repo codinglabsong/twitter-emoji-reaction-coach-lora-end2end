@@ -105,30 +105,33 @@ def set_seed(seed: int) -> None:
 
 
 def main():
+    logging.basicConfig(level=logging.INFO)
     cfg = parse_args()
     
     # ---------- Initialization ----------
     # choose device
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using: {DEVICE}")
+    logging.info(f"Using: {DEVICE}")
     
     # reproducibility
     set_seed(cfg.seed)
-    print(f"Set seed: {cfg.seed}")
+    logging.info(f"Set seed: {cfg.seed}")
     
     # environ
     os.environ["WANDB_NOTES"] = "Fine tune model with low rank adaptation for an emoji reaction coach"
     
+    # ---------- Data Preprocessing ----------
     # download and tokenize dataset
     ds = load_emoji_dataset()
-    ds_tok, tok = tokenize_and_format(ds, max_length=128)
+    ds_tok, tok = tokenize_and_format(ds)
     
     # initialize base model and LoRA
     model = build_base_model()
-    print(f"Base model trainable params: {print_trainable_parameters(model)}")
+    logging.info(f"Base model trainable params: {print_trainable_parameters(model)}")
     lora_model = build_peft_model(model, cfg.peft_rank)
-    print(f"LoRA model (peft_rank={cfg.peft_rank}) trainable params: {print_trainable_parameters(lora_model)}")
+    logging.info(f"LoRA model (peft_rank={cfg.peft_rank}) trainable params: {print_trainable_parameters(lora_model)}")
     
+    # ---------- Train ----------
     # setup trainer and train
     training_args = TrainingArguments(
         output_dir=cfg.model_id,
@@ -164,19 +167,20 @@ def main():
 
     trainer.train()
     
+    # ---------- Save, Test or Push ----------
     # evaluate test 
     if cfg.do_test:
-        print("running final test-set evaluation...")
+        logging.info("running final test-set evaluation...")
         metrics = trainer.evaluate(ds_tok["test"])
-        print(f"Test metrics:\n{metrics}")
+        logging.info(f"Test metrics:\n{metrics}")
 
     # save model & tokenizer to output_dir
-    print("saving LoRA model and tokenizer...")    
+    logging.info("saving LoRA model and tokenizer...")    
     trainer.save_model() 
     
     # push to hub
     if cfg.push_to_hub:
-        print("pushing to Huggingface hub...")
+        logging.info("pushing to Huggingface hub...")
         trainer.push_to_hub(
             repo_id=cfg.hf_hub_repo_id,
             finetuned_from="FacebookAI/roberta-base",
@@ -184,7 +188,6 @@ def main():
             dataset="tweet_eval/emoji",
         )
     
-    # end wandb logging
     wandb.finish()
     
     
