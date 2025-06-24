@@ -105,9 +105,10 @@ def parse_args() -> argparse.Namespace:
         help="Your HF Hub repo (e.g. username/model-name). Required if --push_to_hub.",
     )
     p.add_argument(
-        "--do_test",
-        action="store_true",
-        help="If set, run evaluation on the test split after training.",
+        "--skip_test",
+        action="store_false",
+        dest="do_test",
+        help="Skip evaluation on the test split after training.",
     )
 
     # wandb
@@ -252,7 +253,9 @@ def main() -> None:
     if cfg.do_test:
         logger.info("running final test-set evaluation...")
         metrics = trainer.evaluate(ds_tok["test"])
-        logger.info(f"Test metrics:\n{metrics}")
+        logger.info(f"test metrics:\n{metrics}")
+    else:
+        logger.info("skipping test evaluation.")
 
     # save model & tokenizer to output_dir
     logger.info("saving LoRA model and tokenizer...")
