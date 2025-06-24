@@ -4,12 +4,11 @@ import numpy as np
 import torch
 import os
 import wandb
-from transformers import Trainer
 from transformers import TrainingArguments, Trainer, DataCollatorWithPadding
 from twitter_emoji_reaction_lora.data import load_emoji_dataset, tokenize_and_format
 from twitter_emoji_reaction_lora.model import build_base_model, build_peft_model
-from twitter_emoji_reaction_lora.train import get_weighted_trainer
-from twitter_emoji_reaction_lora.utils import print_trainable_parameters, compute_metrics
+from twitter_emoji_reaction_lora.utils import print_trainable_parameters
+from twitter_emoji_reaction_lora.evaluate import compute_metrics
 from sklearn.utils.class_weight import compute_class_weight
 from uuid import uuid4
 
@@ -140,7 +139,7 @@ def main():
         fp16=True,
         push_to_hub=False,
         report_to="wandb",
-        run_name = f"copmuter-emoji-{uuid4().hex[:8]}",
+        run_name=f"copmuter-emoji-{uuid4().hex[:8]}",
         label_names=["labels"],
     )
     data_collator = DataCollatorWithPadding(tok, pad_to_multiple_of=8)
