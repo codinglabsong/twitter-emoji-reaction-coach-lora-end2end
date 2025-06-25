@@ -15,5 +15,6 @@ setup(
         "wandb",
         "scikit-learn",
         "ipykernel",
+        "gradio",
     ],
 )

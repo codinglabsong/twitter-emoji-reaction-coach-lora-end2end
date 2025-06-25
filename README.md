@@ -6,8 +6,9 @@ Twitter Emoji Reaction LoRA is a Python project for fine-tuning a RoBERTa-based 
 
 - **LoRA Training** – fine-tune `roberta-base` with LoRA adapters on the 20-class TweetEval emoji dataset.
 - **Hugging Face Integration** – scripts can push the resulting model to the Hugging Face Hub.
-- **Evaluation Metrics** – accuracy, macro‑F1 and top‑3 accuracy via `compute_metrics`.
+- **Evaluation Metrics** – accuracy, macro‑F1 and top‑3 accuracy via `compute_metrics`. Tracked using Weights & Biases.
 - **Inference Pipeline** – predict the most likely emojis for new text from the command line.
+- **Gradio App** - ready for deployment and hosted on [Huggingface Spaces](https://huggingface.co/spaces/codinglabsong/twitter-emoji-reaction-coach-lora)
 - **Developer Tools** - tests and developer tools such as ruff and black
 
 ## Installation
@@ -85,12 +86,30 @@ bash scripts/run_inference.sh --mode predict --texts "Happy birthday!" "I love t
 
 | Metric | Value |
 | ------ | ----- |
-| Accuracy | *0.4286* |
-| F1 macro | *0.3346* |
-| Top‑3 accuracy | *0.6503* |
-| Loss | *1.9592* |
+| Accuracy | *0.4252* |
+| F1 macro | *0.3314* |
+| Top‑3 accuracy | *0.6504* |
+| Loss | *1.9516* |
 
 These results should be comparable to community benchmarks (see the [TweetEval leaderboard](https://github.com/cardiffnlp/tweeteval)).
+
+You can access this checkpoint model on [Hugging Face Hub](https://huggingface.co/codinglabsong/roberta-base-with-tweet-eval-emoji).
+
+## Running the Gradio Inference App
+This project includes an interactive Gradio app for making predictions with the trained model.
+
+1. **Obtain the Trained Model:**
+- Make sure you have the trained model directory (`roberta-base-with-tweet-eval-emoji/`). 
+- If you trained the model yourself, it should be saved automatically in the project root.
+- Otherwise, you can download it from [Releases](https://github.com/codinglabsong/twitter-emoji-reaction-coach-lora/releases/tag/v1.0.0) and add it in the project root.
+
+2. **Run the App Locally:**
+```bash
+python app.py
+```
+- The app will start locally and print a link (e.g., `http://127.0.0.1:7860`) to access the web UI in your browser.
+
+> You can also access the hosted demo on [Huggingface Spaces](https://huggingface.co/spaces/codinglabsong/twitter-emoji-reaction-coach-lora)
 
 ## Testing
 
