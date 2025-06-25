@@ -79,6 +79,19 @@ To predict emojis for your own sentences:
 bash scripts/run_inference.sh --mode predict --texts "Happy birthday!" "I love this" --top_k 3
 ```
 
+## Results
+
+![Loss curves](assets/loss.png)
+
+| Metric | Value |
+| ------ | ----- |
+| Accuracy | *0.4286* |
+| F1 macro | *0.3346* |
+| Top‑3 accuracy | *0.6503* |
+| Loss | *1.9592* |
+
+These results should be comparable to community benchmarks (see the [TweetEval leaderboard](https://github.com/cardiffnlp/tweeteval)).
+
 ## Testing
 
 Run the unit tests with `pytest`:
