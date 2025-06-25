@@ -142,6 +142,10 @@ pytest
 
 Open to issues and pull requests!
 
+## Acknowledgements
+- [FacebookAI/roberta-base][(](https://huggingface.co/FacebookAI/roberta-base))
+- [Huggingface LoRA Docs](https://huggingface.co/docs/peft/main/en/conceptual_guides/lora)
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
