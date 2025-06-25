@@ -102,13 +102,14 @@ def main() -> None:
         logger.info("Running evaluation on the test set...")
         # Load and tokenize dataset
         ds = load_emoji_dataset()
-        ds_tok, _ = tokenize_and_format(ds)
+        ds_tok, _ = tokenize_and_format(ds, cfg.model_id)
 
         # Set up Trainer for evaluation
         eval_args = TrainingArguments(
             output_dir="./eval_output",
             per_device_eval_batch_size=cfg.batch_size,
             report_to=[],  # disable integrations
+            label_names=["labels"],
         )
         data_collator = DataCollatorWithPadding(tok, pad_to_multiple_of=8)
         trainer = Trainer(
