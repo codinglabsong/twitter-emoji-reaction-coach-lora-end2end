@@ -6,9 +6,11 @@ Twitter Emoji Reaction LoRA is a Python project for fine-tuning a RoBERTa-based 
 
 - **LoRA Training** – fine-tune `roberta-base` with LoRA adapters on the 20-class TweetEval emoji dataset.
 - **Hugging Face Integration** – scripts can push the resulting model to the Hugging Face Hub.
-- **Evaluation Metrics** – accuracy, macro‑F1 and top‑3 accuracy via `compute_metrics`. Tracked using Weights & Biases.
+- **Logging & Experiment Tracking** – accuracy, macro‑F1 and top‑3 accuracy via `compute_metrics`. Tracked using Weights & Biases.
 - **Inference Pipeline** – predict the most likely emojis for new text from the command line.
 - **Gradio App** - ready for deployment and hosted on [Huggingface Spaces](https://huggingface.co/spaces/codinglabsong/twitter-emoji-reaction-coach-lora)
+- **Reproduciblility** - simple, reproducible training workflows with flexible configurations.
+- **Data Preprocessing** - tokenization and relabeling
 - **Developer Tools** - tests and developer tools such as ruff and black
 
 ## Installation
@@ -82,7 +84,10 @@ bash scripts/run_inference.sh --mode predict --texts "Happy birthday!" "I love t
 
 ## Results
 
-![Loss curves](assets/loss.png)
+![Train Loss curves](assets/loss.png)
+
+![Val Loss curves](assets/val_loss.png)
+Note: Val loss is logged per epoch. The last logged value is from the test set.
 
 | Metric | Value |
 | ------ | ----- |
@@ -91,7 +96,7 @@ bash scripts/run_inference.sh --mode predict --texts "Happy birthday!" "I love t
 | Top‑3 accuracy | *0.6504* |
 | Loss | *1.9516* |
 
-These results should be comparable to community benchmarks (see the [TweetEval leaderboard](https://github.com/cardiffnlp/tweeteval)).
+These results on the test set should be comparable to community benchmarks (see the [TweetEval leaderboard](https://github.com/cardiffnlp/tweeteval)).
 
 You can access this checkpoint model on [Hugging Face Hub](https://huggingface.co/codinglabsong/roberta-base-with-tweet-eval-emoji).
 
