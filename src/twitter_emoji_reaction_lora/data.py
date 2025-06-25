@@ -6,6 +6,7 @@ Provides `load_emoji_dataset` and `tokenize_and_format`.
 from datasets import DatasetDict, load_dataset
 from pathlib import Path
 from transformers import AutoTokenizer
+from typing import Tuple
 
 
 def load_emoji_dataset(cache_dir: str = ".cache") -> DatasetDict:
@@ -31,7 +32,7 @@ def tokenize_and_format(
     ds: DatasetDict,
     checkpoint: str = "FacebookAI/roberta-base",
     max_length: int = 128,
-) -> (DatasetDict, AutoTokenizer):
+) -> Tuple[DatasetDict, AutoTokenizer]:
     """
     Tokenize and prepare a text dataset for PyTorch training.
 
