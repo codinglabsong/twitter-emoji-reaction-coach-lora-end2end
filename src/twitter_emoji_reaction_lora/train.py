@@ -12,7 +12,6 @@ import torch
 import os
 import wandb
 from datasets import DatasetDict
-from huggingface_hub import login
 from typing import Callable, Dict
 from transformers import (
     PreTrainedTokenizerBase,
@@ -23,25 +22,15 @@ from transformers import (
 )
 from twitter_emoji_reaction_lora.data import load_emoji_dataset, tokenize_and_format
 from twitter_emoji_reaction_lora.model import build_base_model, build_peft_model
-from twitter_emoji_reaction_lora.utils import print_trainable_parameters
+from twitter_emoji_reaction_lora.utils import (
+    print_trainable_parameters,
+    set_hf_wandb_environ_vars,
+)
 from twitter_emoji_reaction_lora.evaluate import compute_metrics
 from sklearn.utils.class_weight import compute_class_weight
 from uuid import uuid4
 
 logger = logging.getLogger(__name__)
-
-# setting environ vars depending on local or remote training
-try:
-    # if python-dotenv is installed, load it
-    from dotenv import load_dotenv
-
-    load_dotenv()
-except ImportError:
-    # no python-dotenv available (e.g. in SageMaker container), skip
-    pass
-
-# log into huggingface
-login(token=os.getenv("HUGGINGFACE_TOKEN"))
 
 
 def parse_args() -> argparse.Namespace:
@@ -189,6 +178,7 @@ def main() -> None:
     """Entry point: parse args, prepare data, train, evaluate, and optionally push."""
     logging.basicConfig(level=logging.INFO)
     cfg = parse_args()
+    set_hf_wandb_environ_vars(cfg.wandb_project)
 
     # ---------- Initialization ----------
     # choose device
@@ -206,10 +196,10 @@ def main() -> None:
 
     # initialize base model and LoRA
     model = build_base_model()
-    logger.info(f"Base model trainable params: {print_trainable_parameters(model)}")
+    logger.info(f"Base model trainable params:\n{print_trainable_parameters(model)}")
     lora_model = build_peft_model(model, cfg.peft_rank)
     logger.info(
-        f"LoRA model (peft_rank={cfg.peft_rank}) trainable params: {print_trainable_parameters(lora_model)}"
+        f"LoRA model (peft_rank={cfg.peft_rank}) trainable params:\n{print_trainable_parameters(lora_model)}"
     )
 
     # ---------- Train ----------
@@ -251,19 +241,19 @@ def main() -> None:
     # ---------- Save, Test or Push ----------
     # evaluate test
     if cfg.do_test:
-        logger.info("running final test-set evaluation...")
+        logger.info("Running final test-set evaluation...")
         metrics = trainer.evaluate(ds_tok["test"])
-        logger.info(f"test metrics:\n{metrics}")
+        logger.info(f"Test metrics:\n{metrics}")
     else:
-        logger.info("skipping test evaluation.")
+        logger.info("Skipping test evaluation.")
 
     # save model & tokenizer to output_dir
-    logger.info("saving LoRA model and tokenizer...")
     trainer.save_model()
+    logger.info("Saved LoRA model and tokenizer")
 
     # push to hub
     if cfg.push_to_hub:
-        logger.info("pushing to Huggingface hub...")
+        logger.info("Pushing to Huggingface hub...")
         trainer.push_to_hub(
             repo_id=cfg.hf_hub_repo_id,
             finetuned_from="FacebookAI/roberta-base",

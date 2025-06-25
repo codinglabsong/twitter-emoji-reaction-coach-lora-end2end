@@ -7,9 +7,7 @@ or predict emojis for given input texts.
 
 import argparse
 import logging
-import os
 import torch
-from huggingface_hub import login
 from transformers import (
     AutoTokenizer,
     TrainingArguments,
@@ -24,21 +22,9 @@ from twitter_emoji_reaction_lora.model import (
     build_inference_peft_model,
 )
 from twitter_emoji_reaction_lora.evaluate import compute_metrics
+from twitter_emoji_reaction_lora.utils import set_hf_wandb_environ_vars
 
 logger = logging.getLogger(__name__)
-
-# setting environ vars depending on local or remote training
-try:
-    # if python-dotenv is installed, load it
-    from dotenv import load_dotenv
-
-    load_dotenv()
-except ImportError:
-    # no python-dotenv available (e.g. in SageMaker container), skip
-    pass
-
-# log into huggingface
-login(token=os.getenv("HUGGINGFACE_TOKEN"))
 
 
 def parse_args() -> argparse.Namespace:
@@ -99,7 +85,9 @@ def main() -> None:
     - If mode=='predict', runs inference and prints top_k emojis for each input text.
     """
     logging.basicConfig(level=logging.INFO)
+    set_hf_wandb_environ_vars()
     cfg = parse_args()
+
     device = 0 if torch.cuda.is_available() else -1
     logger.info(f"Loading tokenizer and base model for '{cfg.model_id}'...")
 
