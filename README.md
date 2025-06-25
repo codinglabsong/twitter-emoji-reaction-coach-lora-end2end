@@ -8,10 +8,10 @@ Twitter Emoji Reaction LoRA is a Python project for fine-tuning a RoBERTa-based 
 - **Hugging Face Integration** – scripts can push the resulting model to the Hugging Face Hub.
 - **Logging & Experiment Tracking** – accuracy, macro‑F1 and top‑3 accuracy via `compute_metrics`. Tracked using Weights & Biases.
 - **Inference Pipeline** – predict the most likely emojis for new text from the command line.
-- **Gradio App** - ready for deployment and hosted on [Huggingface Spaces](https://huggingface.co/spaces/codinglabsong/twitter-emoji-reaction-coach-lora)
+- **Gradio App** - ready for deployment and hosted on [Huggingface Spaces](https://huggingface.co/spaces/codinglabsong/twitter-emoji-reaction-coach-lora).
 - **Reproduciblility** - simple, reproducible training workflows with flexible configurations.
-- **Data Preprocessing** - tokenization and relabeling
-- **Developer Tools** - tests and developer tools such as ruff and black
+- **Data Preprocessing** - tokenization and relabeling.
+- **Developer Tools** - tests and developer tools such as ruff and black.
 
 ## Installation
 
