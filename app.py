@@ -71,12 +71,12 @@ demo = gr.Interface(
     fn=predict_emojis,
     inputs=[
         gr.Textbox(label="Enter a X/Twitter post here"),
-        gr.Slider(minimum=1, maximum=5, step=1, label="Top-K Emojis"),
+        gr.Slider(minimum=1, maximum=5, step=1, value=2, label="Top-K Emojis"),
     ],
     outputs=gr.Textbox(label="Reply with Emojis..."),
     title="TweetEval Emoji Reaction Coach",
     description="Type any tweet-like text and get the top-k emoji reactions!",
-    examples=[["Sunny days!"], ["That movie was amazing."]],
+    examples=[["Sunny days!", 2], ["That movie was amazing.", 2]],
 )
 
 if __name__ == "__main__":
